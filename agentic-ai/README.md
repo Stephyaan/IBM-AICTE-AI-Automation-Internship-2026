@@ -59,13 +59,6 @@ Sequence Steps
 - Reusable Relay Sequence
 - Low-Code Automation
 - Modular Workflow Design
- 
-## Relay Shared Sequence
-
-You can view the reusable Relay Sequence here:
-
-https://run.relay.app/shared/sequence-for-auto-reply-to-incoming-emails-IaFsXHt9HGVZ
-
 
 ## Learning Outcomes
 
