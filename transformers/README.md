@@ -29,6 +29,15 @@ The AI:
 - Produces structured output
 - Automatically updates the Planner Sheet
 
+## It performs these steps:
+User provides the project description.
+Reads employee details from Google Sheets.
+Sends the project details and employee data to an AI Agent.
+The AI generates milestones/tasks and assigns employees.
+The output is parsed into a structured format.
+Each generated task is split into individual records.
+The tasks are appended to a Google Sheet.
+
 # ⚙ Workflow Architecture
 
 ```
