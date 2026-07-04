@@ -1,0 +1,405 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -288,
+        -32
+      ],
+      "id": "ddb26733-40ce-487d-9a4e-142bcfa21677",
+      "name": "When chat message received",
+      "webhookId": "3fc61802-bc8c-4650-82d9-a3f460a7b5f7"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1pt8yXXTD1HTfFWEf2C7xUjkEMpsd0BV1YPTaSaPIXyQ",
+          "mode": "list",
+          "cachedResultName": "Task tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1pt8yXXTD1HTfFWEf2C7xUjkEMpsd0BV1YPTaSaPIXyQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 96729737,
+          "mode": "list",
+          "cachedResultName": "Team Members",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1pt8yXXTD1HTfFWEf2C7xUjkEMpsd0BV1YPTaSaPIXyQ/edit#gid=96729737"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -80,
+        -32
+      ],
+      "id": "650e2588-3620-4f93-9a22-bacd4df328df",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "B71SJCZxLYZMsrwV",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        128,
+        -32
+      ],
+      "id": "b8464b58-90f6-41bb-847c-a4cd127849fb",
+      "name": "Employees"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a Project Planning Agent. Your job is to break a project request into a clear, ordered set of milestones and return them as structured data that maps exactly to a task-tracking spreadsheet.\n\n## INPUTS\nYou receive:\n1. A project request from chat describing what needs to be planned (goal, scope, any constraints, deadlines).{{ $('When chat message received').item.json.chatInput }}\n3. CURRENT_TIMESTAMP: {{ $now }}\n4. AVAILABLE_EMPLOYEES (assign owners ONLY from this list):\n{{ JSON.stringify($data, null, 2) }}\n\n   Each employee has: Employee_ID, Employee_Name, Email, Role, Department, Manager, Location.\n\n## YOUR TASK\n- Decompose the project into 4–10 logical, sequential milestones. Each milestone is a meaningful phase or deliverable, not a tiny sub-task.\n- Order them so dependencies make sense (a milestone's start should follow the end of what it depends on).\n- Assign a realistic timeline. Build a sensible schedule starting from today (CURRENT_TIMESTAMP) unless the request specifies a start date. Milestones may overlap if they can run in parallel.\n- Assign exactly one Owner per milestone, chosen from AVAILABLE_EMPLOYEES. Match the owner to the milestone based on their Role and Department (e.g. design work → a designer, backend work → an engineer). Use the exact Employee_Name string from the list.\n- Write a concise 1–2 sentence Description for each milestone explaining what \"done\" looks like.\n\n## FIELD RULES\n- Project_id: use PROJECT_ID for every row.\n- Project_name: use PROJECT_NAME for every row.\n- Milestones: a short title (3–8 words).\n- Description: 1–2 sentences, outcome-focused.\n- Owner: must exactly match an Employee_Name from AVAILABLE_EMPLOYEES. Never invent a name.\n- Start_date / End_date: ISO 8601 date format (YYYY-MM-DD). End_date must be on or after Start_date.\n- Status: always \"Not Started\" for newly planned milestones.\n- Priority: one of \"Low\", \"Medium\", \"High\", \"Critical\" based on impact and urgency.\n- Progress_percentage: always 0 for new milestones.\n- Created_at / Updated_at: set both to CURRENT_TIMESTAMP (ISO 8601).\n\n## CONSTRAINTS\n- Do not assign an owner who is not in AVAILABLE_EMPLOYEES.\n- Do not add commentary, explanations, or markdown. Return only the structured object defined by the output schema.\n- Every milestone object must contain all fields, with no nulls.",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        336,
+        -32
+      ],
+      "id": "a50b4d78-f95e-4492-ac5b-d665c5407198",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        352,
+        192
+      ],
+      "id": "f042d124-4226-45df-945a-e0e416d4b51e",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "fUejn7ssxl34xNBA",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "\n \t\n{\n  \"milestones\": [\n    {\n      \"Project_id\": \"KIS-001\",\n      \"Project_name\": \"Kisaniyat\",\n      \"Milestones\": \"Market research and farmer needs analysis\",\n      \"Description\": \"Survey target farmers to identify which government schemes they struggle to access and why. Done when a prioritized list of scheme categories and pain points is documented.\",\n      \"Owner\": \"Yash Patel\",\n      \"Start_date\": \"2026-06-20\",\n      \"End_date\": \"2026-07-04\",\n      \"Status\": \"Not Started\",\n      \"Priority\": \"High\",\n      \"Progress_percentage\": 0,\n      \"Created_at\": \"2026-06-18T19:11:45.055+05:30\",\n      \"Updated_at\": \"2026-06-18T19:11:45.055+05:30\"\n    },\n    {\n      \"Project_id\": \"KIS-001\",\n      \"Project_name\": \"Kisaniyat\",\n      \"Milestones\": \"Content strategy for scheme awareness\",\n      \"Description\": \"Define the messaging, channels, and content calendar for educating farmers about relevant schemes. Done when an approved content plan covering blogs and social media exists.\",\n      \"Owner\": \"Devansh Jain\",\n      \"Start_date\": \"2026-07-05\",\n      \"End_date\": \"2026-07-20\",\n      \"Status\": \"Not Started\",\n      \"Priority\": \"Medium\",\n      \"Progress_percentage\": 0,\n      \"Created_at\": \"2026-06-18T19:11:45.055+05:30\",\n      \"Updated_at\": \"2026-06-18T19:11:45.055+05:30\"\n    }\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        512,
+        176
+      ],
+      "id": "5af319f4-f911-44a0-bb37-0a1f8ccd1998",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "output.milestones",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        688,
+        -32
+      ],
+      "id": "6a347778-f0be-476e-b4eb-579cf8d818a9",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1pt8yXXTD1HTfFWEf2C7xUjkEMpsd0BV1YPTaSaPIXyQ",
+          "mode": "list",
+          "cachedResultName": "Task tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1pt8yXXTD1HTfFWEf2C7xUjkEMpsd0BV1YPTaSaPIXyQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Project Plan",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1pt8yXXTD1HTfFWEf2C7xUjkEMpsd0BV1YPTaSaPIXyQ/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Project_id": "={{ $json.Project_id }}",
+            "Project_name": "={{ $json.Project_name }}",
+            "Milestones": "={{ $json.Milestones }}",
+            "Description": "={{ $json.Description }}",
+            "Owner": "={{ $json.Owner }}",
+            "Start_date": "={{ $json.Start_date }}",
+            "End_date": "={{ $json.End_date }}",
+            "Status": "={{ $json.Status }}",
+            "Updated_at": "={{ $json.Updated_at }}",
+            "Created_at": "={{ $json.Created_at }}",
+            "Priority": "={{ $json.Priority }}",
+            "Progress_percentage": "={{ $json.Progress_percentage }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Project_id",
+              "displayName": "Project_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Project_name",
+              "displayName": "Project_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Milestones",
+              "displayName": "Milestones",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Owner",
+              "displayName": "Owner",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Start_date",
+              "displayName": "Start_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "End_date",
+              "displayName": "End_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Progress_percentage",
+              "displayName": "Progress_percentage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Created_at",
+              "displayName": "Created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Updated_at",
+              "displayName": "Updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        896,
+        -32
+      ],
+      "id": "615332c0-1943-456e-bdb8-e631862c9538",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "B71SJCZxLYZMsrwV",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When chat message received": [
+      {
+        "json": {
+          "action": "sendMessage",
+          "sessionId": "e4b42ee8765248b1a193798f91f8dcee",
+          "chatInput": "I have a task of designing a new website for new client by december, the website is an e-commerce website that features 500 products."
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Employees",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Employees": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "551c0663-8251-4959-b021-8db25fc6ab4a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ae8884719a10a66c2024cc9d3c14f742e16c2d1ea8467fb19f01fc836788f9da"
+  },
+  "nodeGroups": [],
+  "id": "q3CNyibEj3wNunjj",
+  "tags": []
+}
